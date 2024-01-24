@@ -37,7 +37,7 @@ Creates a user and account records. Returns an account access token for the app 
 ##### Headers
 
 Authorization
-: {{<required>}} Provide this header with `Bearer <user token>` to gain authorized access to this API method.
+: {{<required>}} Provide this header with `Bearer <app token>` to gain authorized access to this API method.
 
 ##### Form data parameters
 
@@ -858,7 +858,7 @@ Accounts which follow the given account, if network is not hidden by the account
 ##### Headers
 
 Authorization
-: {{<required>}} Provide this header with `Bearer <user token>` to gain authorized access to this API method.
+: Provide this header with `Bearer <user token>` to gain authorized access to this API method.
 
 ##### Query parameters
 
@@ -964,7 +964,7 @@ Accounts which the given account is following, if network is not hidden by the a
 ##### Headers
 
 Authorization
-: {{<required>}} Provide this header with `Bearer <user token>` to gain authorized access to this API method.
+: Provide this header with `Bearer <user token>` to gain authorized access to this API method.
 
 ##### Query parameters
 

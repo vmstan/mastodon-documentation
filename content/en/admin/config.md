@@ -219,6 +219,8 @@ By default, the loopback and private network address ranges are trusted. Specifi
 
 If you're using a single reverse proxy and it runs on the same machine or is in the same private network as your Mastodon web and streaming processes then you most likely don't need to modify this setting and can use the default. Or if you're using multiple reverse proxy servers and they're all in the same private network as your Mastodon web and streaming processes then, again, the default should be fine. However, if you're using a reverse proxy server that reaches your Mastodon web and streaming servers via a public IP address (for example if you're using Cloudflare or a similar proxy) then you'll need to set this variable. It should be the IPs of all reverse proxies in use, as a comma-separated list of IPs or IP ranges using [CIDR notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation). Note that when this variable is set the default ranges (mentioned above) will no longer be trusted, so if you have both an external reverse proxy _and_ a proxy on localhost then you must include the IPs (or IP ranges) of both.
 
+Administrators and moderators can find what Mastodon sees as the source IP for each user by navigating to the Settings > Moderation > Accounts tab. You can use a tool like [IPInfo](https://ipinfo.io) to gauge whether the IP is being used by an end-user ISP, or by a server hosting your proxy.
+
 #### `SOCKET`
 
 Instead of binding to an IP address like `127.0.0.1`, you may bind to a Unix socket. This variable is process-specific, e.g. you need different values for every process, and it works for both web (Puma) processes and streaming API (Node.js) processes.
@@ -326,6 +328,38 @@ PostgreSQL [SSL mode](https://www.postgresql.org/docs/10/libpq-ssl.html). Defaul
 If provided, takes precedence over `DB_HOST`, `DB_USER`, `DB_NAME`, `DB_PASS` and `DB_PORT`.
 
 Example value: `postgresql://user:password@localhost:5432`
+
+### PostgreSQL (read-only replica) {#postgresql-replica}
+
+{{< hint style="info" >}}
+If you want to use a read-only database replica, you can have more details [on this page](../scaling/#read-replicas)
+{{</ hint >}}
+
+#### `REPLICA_DB_HOST`
+
+No default.
+
+#### `REPLICA_DB_PORT`
+
+No default.
+
+#### `REPLICA_DB_NAME`
+
+No default.
+
+#### `REPLICA_DB_USER`
+
+No default.
+
+#### `REPLICA_DB_PASS`
+
+No default.
+
+#### `REPLICA_DATABASE_URL`
+
+If provided, takes precedence over `REPLICA_DB_HOST`, `REPLICA_DB_PORT`, `REPLICA_DB_NAME`, `REPLICA_DB_USER` and `REPLICA_DB_PASS`
+
+No default.
 
 ### Redis {#redis}
 
@@ -467,9 +501,9 @@ E-mail configuration is based on the *action_mailer* component of the *Ruby on R
 * `SMTP_SERVER`: Specify the server to use. For example `sub.domain.tld`.
 * `SMTP_PORT`: By default, the value is `25` (the usual port for SMTP). If StartTLS is detected, it may be switched to port 587.
 * `SMTP_DOMAIN`: Only required if a HELO domain is needed. Will be set to the `SMTP_SERVER` domain by default.
-* `SMTP_FROM_ADDRESS`: Specify a sender address. 
+* `SMTP_FROM_ADDRESS`: Specify a sender address.
 * `SMTP_DELIVERY_METHOD`: By default, the value is `smtp` (can also be `sendmail`).
-  
+
 ### Authentication for the SMTP server {#smtpauthentication}
 
 * `SMTP_LOGIN`: Login for the SMTP user.
@@ -480,12 +514,12 @@ E-mail configuration is based on the *action_mailer* component of the *Ruby on R
 By default, a StartTLS connection will be attempted to the specified SMTP server.
 
 * `SMTP_ENABLE_STARTTLS_AUTO`: Default `true`.
-* `SMTP_CA_FILE`: A value may be specified, but on many Linux distros (e.g. Debian-based) this will be `/etc/ssl/certs/ca-certificates.crt`. 
-* `SMTP_OPENSSL_VERIFY_MODE`: `none` or `peer`. When using TLS, it may be useful to accept connections with a self-signed certificate. 
+* `SMTP_CA_FILE`: A value may be specified, but on many Linux distros (e.g. Debian-based) this will be `/etc/ssl/certs/ca-certificates.crt`.
+* `SMTP_OPENSSL_VERIFY_MODE`: `none` or `peer`. When using TLS, it may be useful to accept connections with a self-signed certificate.
 * `SMTP_TLS`: `true` or `false` (default `false`)
 * `SMTP_SSL`: `true` or `false` (default `false`)
 
-Note that `TLSv1.3` and `TLSv1.2` are the only SSL/TLS protocols currently considered to be secure. 
+Note that `TLSv1.3` and `TLSv1.2` are the only SSL/TLS protocols currently considered to be secure.
 
 ## File storage {#files}
 
@@ -552,6 +586,10 @@ You must serve the files with CORS headers, otherwise some functions of Mastodon
 
 #### `S3_FORCE_SINGLE_REQUEST`
 
+#### `S3_PERMISSION`
+
+Defines the S3 object ACL when uploading new files. Default is `public-read`. Use caution when using [S3 Block Public Access](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html) and turning on the `BlockPublicAcls` option, as uploading objects with ACL `public-read` will fail (403). In that case, set `S3_PERMISSION` to `private`.
+
 #### `S3_BATCH_DELETE_LIMIT`
 
 The official [Amazon S3 API](https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObjects.html) can handle deleting 1,000 objects in one batch job, but some providers may have issues handling this many in one request, or offer lower limits. Defaults to `1000`.
@@ -583,6 +621,34 @@ During batch delete operations, S3 providers may perodically fail or timeout whi
 #### `SWIFT_DOMAIN_NAME`
 
 #### `SWIFT_CACHE_TTL`
+
+### HTTP Cache Buster
+
+If configured, the Cache Buster feature will send a request to invalidate the cache for media files when they are deleted or made unavailable from your origin. This allows you to ensure that your caching layer / CDN is purged from any content that is removed from Mastodon.
+
+{{< hint style="info" >}}
+The way to achieve this is very dependent of your proxy/CDN provider and will require configuration. If you are using nginx for HTTP caching, you will want to look at the `proxy_cache_purge` configuration directive.
+{{</ hint >}}
+
+#### `CACHE_BUSTER_ENABLED`
+
+If set to `true`, then Mastodon will send a cache-busting request to the media URL when deleting the file so the file can be purged from the cache.
+
+Defaults to `false`
+
+#### `CACHE_BUSTER_HTTP_METHOD`
+
+Defaults to `GET`
+
+#### `CACHE_BUSTER_SECRET_HEADER`
+
+Name of the header containing the secret defined in `CACHE_BUSTER_SECRET`.
+
+Defaults to an empty value, meaning no header will be added
+
+#### `CACHE_BUSTER_SECRET`
+
+Value of the `CACHE_BUSTER_SECRET_HEADER` header configured above.
 
 ## External authentication {#external-authentication}
 
@@ -662,6 +728,8 @@ before Mastodon starts.
 #### `CAS_DISABLE_SSL_VERIFICATION`
 
 #### `CAS_UID_KEY`
+The key to the username to use for the account.
+The created account will be `@uid@domain.tld`.
 
 #### `CAS_NAME_KEY`
 
@@ -676,6 +744,9 @@ before Mastodon starts.
 #### `CAS_LOCATION_KEY`
 
 #### `CAS_IMAGE_KEY`
+The key to the image to use as account avatar.
+The value in this key must be a URL to the image file.
+It is important to use a supported file format (JPEG or PNG, not SVG).
 
 #### `CAS_PHONE_KEY`
 
@@ -789,12 +860,6 @@ This variable only has any effect when running `rake db:migrate` and it is extre
 
 #### `LIBRE_TRANSLATE_API_KEY`
 
-#### `CACHE_BUSTER_ENABLED`
-
-#### `CACHE_BUSTER_SECRET_HEADER`
-
-#### `CACHE_BUSTER_SECRET`
-
 #### `GITHUB_REPOSITORY`
 
 Defaults to `mastodon/mastodon`
@@ -804,6 +869,12 @@ Defaults to `mastodon/mastodon`
 Defaults to `https://github.com/$GITHUB_REPOSITORY`
 
 #### `FFMPEG_BINARY`
+
+#### `HCAPTCHA_SITE_KEY`
+
+Set this to your hCaptcha site key to enable captchas on the account confirmation page using hCaptcha.
+
+Defaults to empty value (not enabled)
 
 #### `LOCAL_HTTPS`
 
@@ -842,4 +913,3 @@ Defaults to `512`.
 #### `GITHUB_API_TOKEN`
 
 Used in a rake task for generating AUTHORS.md from GitHub commit history.
-
