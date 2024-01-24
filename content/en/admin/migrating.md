@@ -1,5 +1,5 @@
 ---
-title: Migrating to a new machine
+title: Migrating to a new server
 description: Copying your Mastodon installation to a new server without losing anything.
 menu:
   docs:
